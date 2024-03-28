@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="lab.biz.v1.mapper.admin.AssetCategoryMapper">
+
+    <resultMap type="lab.biz.v1.dto.admin.AssetCategoryInfo" id="AssetCategoryInfo">
+        <id property="seq" column="seq"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="useYn" column="use_yn"/>
+        <result property="latestId" column="last_id"/>
+        <result property="writeDate" column="write_date"/>
+        <result property="modifyDate" column="modify_date"/>
+        <collection property="subcategories" ofType="lab.biz.v1.dto.admin.AssetSubCategory">
+            <id property="seq" column="sub_seq"/>
+            <result property="mainCategory" column="main_category"/>
+            <result property="code" column="sub_code"/>
+            <result property="name" column="sub_name"/>
+            <result property="useYn" column="sub_use_yn"/>
+            <result property="latestId" column="sub_latest_id"/>
+            <result property="writeDate" column="sub_write_date"/>
+            <result property="modifyDate" column="sub_modify_date"/>
+        </collection>
+    </resultMap>
+
+    <resultMap type="lab.biz.v1.dto.admin.AssetMainCategory" id="AssetMainCategories">
+        <id property="seq" column="seq"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="useYn" column="use_yn"/>
+        <result property="latestId" column="latest_id"/>
+        <result property="writeDate" column="write_date"/>
+        <result property="modifyDate" column="modify_date"/>
+    </resultMap>
+
+    <resultMap type="lab.biz.v1.dto.admin.AssetSubCategory" id="AssetSubCategories">
+        <id property="seq" column="seq"/>
+        <result property="mainCategory" column="main_category"/>
+        <result property="code" column="code"/>
+        <result property="name" column="name"/>
+        <result property="useYn" column="use_yn"/>
+        <result property="latestId" column="latest_id"/>
+        <result property="writeDate" column="write_date"/>
+        <result property="modifyDate" column="modify_date"/>
+    </resultMap>
+
+
+    <!--대분류+소분류-->
+    <!--조회-->
+    <select id="selectMainSub" resultMap="AssetCategoryInfo">
+        <!--        SELECT  mainC.seq,-->
+        <!--                LPAD(mainC.code, '3', '0') AS code,-->
+        <!--                mainC.name,-->
+        <!--                mainC.use_yn,-->
+        <!--                IFNULL(mainC.modify_id,mainC.write_id) AS lastest_id,-->
+        <!--                mainC.write_date,-->
+        <!--                mainC.modify_date,-->
+        <!--                subC.seq as sub_seq,-->
+        <!--                subC.main_category,-->
+        <!--                LPAD(subC.code, '2', '0') as sub_code,-->
+        <!--                subC.name as sub_name,-->
+        <!--                subC.use_yn as sub_use_yn,-->
+        <!--                subC.lastest_id as sub_lastest_id,-->
+        <!--                subC.write_date as sub_write_date,-->
+        <!--                subC.modify_date as sub_modify_date-->
+        <!--        FROM asset_main_category mainC-->
+        <!--        JOIN (SELECT seq,-->
+        <!--                     main_category,-->
+        <!--                     code,-->
+        <!--                     name,-->
+        <!--                     use_yn,-->
+        <!--                     IFNULL(modify_id,write_id) AS lastest_id,-->
+        <!--                     write_date,-->
+        <!--                     modify_date-->
+        <!--              FROM asset_sub_category) subC-->
+        <!--        on mainC.seq = subC.main_category-->
+        <!--management에서 조회 위해-->
+        SELECT  mainC.seq,
+                LPAD(mainC.code, '3', '0') AS code,
+                mainC.name,
+                mainC.use_yn,
+                IFNULL(mainC.modify_id,mainC.write_id) AS latest_id,
+                mainC.write_date,
+                mainC.modify_date,
+                subC.seq as sub_seq,
+                subC.main_category,
+                LPAD(subC.code, '2', '0') as sub_code,
+                subC.name as sub_name,
+                subC.use_yn as sub_use_yn,
+                subC.latest_id as sub_latest_id,
+                subC.write_date as sub_write_date,
+                subC.modify_date as sub_modify_date
+        FROM asset_main_category mainC
+        JOIN (SELECT
+                    seq,
+                    main_category,
+                    code,
+                    name,
+                    use_yn,
+                    IFNULL(modify_id,write_id) AS latest_id,
+                    write_date,
+                    modify_date
+             FROM asset_sub_category) subC
+        on mainC.seq = subC.main_category
+        WHERE mainC.seq=#{main_category}
+        <if test="sub_category !=null">
+            AND subC.seq = #{sub_category}
+        </if>
+    </select>
+
+    <!--페이징 위한 검색값 개수-->
+    <!--    <select id="totalCategoryCnt" resultType="int">-->
+    <!--        SELECT count(*) as listCnt-->
+    <!--        FROM asset_main_category mainC-->
+    <!--        LEFT JOIN (SELECT seq,-->
+    <!--                            main_category,-->
+    <!--                            code,-->
+    <!--                            name,-->
+    <!--                            use_yn,-->
+    <!--                            IFNULL(modify_id,write_id) AS last_id,-->
+    <!--                            write_date,-->
+    <!--                            modify_date-->
+    <!--                   FROM asset_sub_category) subC-->
+    <!--        on mainC.seq = subC.main_category-->
+    <!--        WHERE 1=1-->
+    <!--        <if test="searchKey !=null">-->
+    <!--            <if test="searchKey == 'main_seq'">-->
+    <!--                AND mainC.seq LIKE CONCAT('%', #{searchWord}, '%')-->
+    <!--            </if>-->
+    <!--            <if test="searchKey == 'main_code'">-->
+    <!--                AND LPAD(mainC.code, '3', '0') LIKE CONCAT('%', #{searchWord}, '%')-->
+    <!--            </if>-->
+    <!--            <if test="searchKey == 'sub_seq'">-->
+    <!--                AND subC.seq LIKE CONCAT('%', #{searchWord}, '%')-->
+    <!--            </if>-->
+    <!--            <if test="searchKey == 'sub_code'">-->
+    <!--                AND LPAD(subC.code, '3', '0') LIKE CONCAT('%', #{searchWord}, '%')-->
+    <!--            </if>-->
+    <!--            <if test="searchKey == 'use_yn'">-->
+    <!--                AND mainC.use_yn LIKE CONCAT('%', #{searchWord}, '%')-->
+    <!--                OR subC.use_yn LIKE CONCAT('%', #{searchWord}, '%')-->
+    <!--            </if>-->
+    <!--        </if>-->
+    <!--    </select>-->
+    <select id="totalCategoryCnt" resultType="int">
+        SELECT count(*) as listCnt
+        FROM asset_main_category
+        WHERE 1=1
+        <if test="searchWord !=null">
+            <if test="searchKey == 'main_name'">
+                AND name LIKE CONCAT('%', #{searchWord}, '%')
+            </if>
+            <if test="searchKey == 'main_code'">
+                AND LPAD(code, '3', '0') = #{searchWord}
+            </if>
+            <if test="searchKey == 'sub_name'">
+                AND seq IN(
+                SELECT main_category
+                FROM asset_sub_category
+                WHERE name LIKE CONCAT('%', #{searchWord}, '%')
+                )
+            </if>
+            <if test="searchKey == 'sub_code'">
+                AND seq IN(
+                SELECT main_category
+                FROM asset_sub_category
+                WHERE LPAD(code, '2', '0') = #{searchWord}
+                )
+            </if>
+            <if test="searchKey == 'use_yn'">
+                AND use_yn = #{searchWord}
+                OR seq IN(
+                SELECT main_category
+                FROM asset_sub_category
+                WHERE use_yn = #{searchWord}
+                )
+            </if>
+        </if>
+    </select>
+
+    <!--대분류코드별 등록된 총 소분류 개수-->
+    <select id="mainCategoryTotalCnt" resultType="int">
+        SELECT count(*)
+        FROM asset_sub_category
+        WHERE main_category =#{main_category}
+        <!--        GROUP BY main_category-->
+    </select>
+
+    <!--대분류-->
+    <!--조회-->
+    <select id="selectMainCategory" resultMap="AssetMainCategories">
+        SELECT  seq,
+                LPAD(code, '3', '0') as code,
+                name,
+                use_yn,
+                IFNULL(modify_id,write_id) AS latest_id,
+                write_date,
+                modify_date
+        FROM asset_main_category
+        <if test="seq != null">
+            WHERE seq = #{seq}
+        </if>
+    </select>
+
+    <!--페이징 조회-->
+    <select id="selectMainCategoryPaging" resultMap="AssetMainCategories">
+        SELECT  seq,
+                LPAD(code, '3', '0') as code,
+                name,
+                use_yn,
+                IFNULL(modify_id,write_id) AS latest_id,
+                write_date,
+                modify_date
+        FROM asset_main_category
+        WHERE 1=1
+        <if test="searchWord !=null">
+            <if test="searchKey == 'main_name'">
+                AND name LIKE CONCAT('%', #{searchWord}, '%')
+            </if>
+            <if test="searchKey == 'main_code'">
+                AND LPAD(code, '3', '0') = #{searchWord}
+            </if>
+            <if test="searchKey == 'sub_name'">
+                AND seq IN(
+                            SELECT main_category
+                            FROM asset_sub_category
+                            WHERE name LIKE CONCAT('%', #{searchWord}, '%')
+                        )
+            </if>
+            <if test="searchKey == 'sub_code'">
+                AND seq IN(
+                            SELECT main_category
+                            FROM asset_sub_category
+                            WHERE LPAD(code, '2', '0') = #{searchWord}
+                        )
+            </if>
+            <if test="searchKey == 'use_yn'">
+                AND use_yn = #{searchWord}
+                OR seq IN(
+                            SELECT main_category
+                            FROM asset_sub_category
+                            WHERE use_yn = #{searchWord}
+                        )
+            </if>
+        </if>
+        GROUP BY seq
+    </select>
+
+    <!--대분류코드별 마지막으로 입력된 code-->
+    <select id="mainCategorylatestCode" resultType="int">
+        SELECT IFNULL(max(code),0) as latestCode
+        FROM asset_main_category
+    </select>
+
+    <!--등록-->
+    <insert id="createMainCategory">
+        INSERT INTO asset_main_category (name, code, use_yn, write_id)
+        VALUES ( IFNULL(#{name},""), #{code}, #{useYn}, #{writeId})
+    </insert>
+
+    <!--수정-->
+<!--    <update id="updateMainCategory">-->
+<!--        <foreach collection="request" item="modiInfo" separator=";">-->
+<!--            UPDATE asset_main_category-->
+<!--            <set>-->
+<!--                <if test="modiInfo.name != null">name = #{modiInfo.name},</if>-->
+<!--                <if test="modiInfo.useYn != null">use_yn = #{modiInfo.useYn},</if>-->
+<!--                write_id = #{modiInfo.writeId},-->
+<!--                modify_date = now()-->
+<!--            </set>-->
+<!--            WHERE seq = #{modiInfo.seq}-->
+<!--        </foreach>-->
+<!--    </update>-->
+<!--    IFNULL(#{name},"")-->
+    <update id="updateMainCategory">
+        <foreach collection="request" item="modiInfo" separator=";">
+            UPDATE asset_main_category
+            SET name = IFNULL(#{modiInfo.name},""),
+                use_yn = #{modiInfo.useYn},
+                write_id = #{modiInfo.writeId},
+                modify_date = now()
+            WHERE seq = #{modiInfo.seq}
+        </foreach>
+    </update>
+
+    <!--삭제-->
+    <delete id="deleteMainCategory" parameterType="list">
+        DELETE FROM asset_main_category
+        WHERE
+        <foreach collection="deleteMainCategorySeq" item="info" separator="OR">
+            (SEQ=#{info})
+        </foreach>
+    </delete>
+
+    <!--소분류-->
+    <!--조회-->
+    <select id="selectSubCategory" resultMap="AssetSubCategories">
+        SELECT  subC.seq,
+                subC.main_category,
+                LPAD(subC.code, '2', '0') as code,
+                subC.name,
+                subC.use_yn,
+                IFNULL(subC.modify_id,subC.write_id) AS latest_id,
+                subC.write_date,
+                subC.modify_date
+        FROM asset_sub_category subC
+        JOIN asset_main_category mainC
+        on mainC.seq = subC.main_category
+        WHERE 1=1
+        <if test="seq != null">
+            AND subC.main_category = #{seq}
+        </if>
+        <if test="sub_category != null">
+            AND subC.seq = #{sub_category}
+        </if>
+        <if test="search.searchKey!=null and search.searchKey=='sub_code'">
+            AND LPAD(subC.code, '2', '0') = #{search.searchWord}
+        </if>
+        <if test="search.searchKey!=null and search.searchKey=='sub_name'">
+            AND subC.name LIKE CONCAT('%', #{search.searchWord}, '%')
+        </if>
+        <if test="search.searchKey!=null and search.searchKey=='use_yn'">
+            AND subC.use_yn = #{search.searchWord}
+        </if>
+    </select>
+
+    <!--대분류코드별 마지막으로 입력된 code-->
+    <select id="subCategorylatestCode" resultType="int">
+        SELECT IFNULL(max(code),0) as code
+        FROM asset_sub_category
+        WHERE main_category =#{main_category}
+        <!--        GROUP BY main_category-->
+    </select>
+
+    <!--등록-->
+    <insert id="createSubCategory">
+        INSERT INTO asset_sub_category (main_category, name, code, use_yn, write_id)
+        VALUES (#{mainCategory}, IFNULL(#{name},""), #{code}, #{useYn}, #{writeId})
+    </insert>
+
+    <!--수정-->
+    <update id="updateSubCategory">
+        <foreach collection="request" item="modiInfo" separator=";">
+            UPDATE asset_sub_category
+            SET name = IFNULL(#{modiInfo.name},""),
+                use_yn = #{modiInfo.useYn},
+                modify_id = #{modiInfo.writeId},
+                modify_date = now()
+            WHERE seq = #{modiInfo.seq}
+        </foreach>
+    </update>
+
+    <!--삭제-->
+    <delete id="deleteSubCategory" parameterType="list">
+        DELETE FROM asset_sub_category
+        WHERE
+        <foreach collection="deleteSubCategorySeq" item="info" separator="OR">
+            (SEQ=#{info})
+        </foreach>
+    </delete>
+
+</mapper>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="lab.biz.v1.mapper.admin.CompanyMapper">
+
+    <select id="findBySeq" resultType="lab.biz.v1.dto.admin.CompanyDto">
+        SELECT *
+        FROM sales_customer_basic
+        WHERE seq = #{seq}
+    </select>
+
+    <select id="getAllCompanies" resultType="lab.biz.v1.dto.admin.CompanyDto">
+        SELECT *
+        FROM sales_customer_basic
+        ORDER BY seq DESC
+    </select>
+
+</mapper>

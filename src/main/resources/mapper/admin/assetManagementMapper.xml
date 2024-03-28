@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="lab.biz.v1.mapper.admin.AssetManagementMapper">
+
+    <resultMap type="lab.biz.v1.dto.admin.AssetManagement" id="AssetManagements">
+        <id property="seq" column="seq"/>
+        <result property="mainCategory" column="main_category"/>
+        <result property="subCategory" column="sub_category"/>
+        <result property="code" column="code"/>
+        <result property="serialNum" column="serial_num"/>
+        <result property="userSeq" column="user_seq"/>
+        <result property="userName" column="user_name"/>
+        <result property="manufacturer" column="manufacturer"/>
+        <result property="standard" column="standard"/>
+        <result property="note" column="note"/>
+        <result property="rental" column="rental"/>
+    </resultMap>
+
+    <!--조회-->
+    <select id="selectManagementList" resultMap="AssetManagements">
+        SELECT  seq,
+                main_category,
+                sub_category,
+                LPAD(code,'3','0') as code,
+                serial_num,
+                manufacturer,
+                purchase_date,
+                user_seq,
+                standard,
+                rental
+        FROM asset_management
+    </select>
+
+    <!--조인해서 조회-->
+    <select id="selectManagementList2" resultMap="AssetManagements">
+        SELECT  manage.seq,
+                manage.main_category,
+                LPAD(mainC.code,'3','0') AS main_code,
+                mainC.name AS main_name,
+                manage.sub_category,
+                LPAD(subC.code,'2','0') AS sub_code,
+                subC.name AS sub_name,
+                LPAD(manage.code,'3','0') as code,
+                serial_num,
+                manufacturer,
+                purchase_date,
+                manage.user_seq,
+                users.user_name AS user_name,
+                standard,
+                rental,
+                note
+        FROM asset_management manage
+        JOIN asset_main_category mainC
+        ON manage.main_category = mainC.seq
+        JOIN asset_sub_category subC
+        ON manage.sub_category = subC.seq
+        LEFT JOIN (
+                SELECT seq, user_name
+                FROM user
+                WHERE confirm_flag ='Y'
+                )users
+        ON manage.user_seq = users.seq
+        <if test="seq != null">
+            WHERE manage.seq = #{seq}
+        </if>
+        order by manage.write_date desc
+    </select>
+
+    <!--검색조회-->
+    <select id="selectManagementSearch" resultMap="AssetManagements">
+<!--    <select id="selectManagementSearch">-->
+        SELECT  manage.seq,
+                manage.main_category,
+                LPAD(mainC.code,'3','0') AS main_code,
+                mainC.name AS main_name,
+                manage.sub_category,
+                LPAD(subC.code,'2','0') AS sub_code,
+                subC.name AS sub_name,
+                LPAD(manage.code,'3','0') as code,
+                serial_num,
+                manufacturer,
+                purchase_date,
+                manage.user_seq,
+                users.user_name AS user_name,
+                standard,
+                rental,
+                note
+        FROM asset_management manage
+        JOIN asset_main_category mainC
+        ON manage.main_category = mainC.seq
+        JOIN asset_sub_category subC
+        ON manage.sub_category = subC.seq
+        LEFT JOIN (
+                    SELECT seq, user_name
+                    FROM user
+                    WHERE confirm_flag ='Y'
+                    )users
+        ON manage.user_seq = users.seq
+        WHERE 1=1
+        <if test="searchKey !=null">
+            <if test="searchKey == 'category' and searchWord1 !=null ">
+                AND manage.main_category =#{searchWord1}
+                <if test="searchWord2 !=null">
+                    AND manage.sub_category =#{searchWord2}
+                </if>
+            </if>
+            <if test="searchKey == 'purchase_date' and searchWord!=null">
+                AND purchase_date LIKE CONCAT('%', #{searchWord}, '%')
+            </if>
+            <if test="searchKey == 'manufacturer' and searchWord!=null">
+                AND manufacturer LIKE CONCAT('%', #{searchWord}, '%')
+            </if>
+            <if test="searchKey == 'serial_num' and searchWord!=null">
+                AND serial_num LIKE CONCAT('%', #{searchWord}, '%')
+            </if>
+            <if test="searchKey == 'user_name' and searchWord!=null">
+                AND user_name LIKE CONCAT('%', #{searchWord}, '%')
+            </if>
+            <if test="searchKey == 'rental'">
+                AND rental = #{searchWord}
+            </if>
+        </if>
+    </select>
+
+    <select id="selectLatestCode" resultType="int">
+        <!--        SELECT MAX(CODE) AS latest_code-->
+        <!--        FROM asset_management-->
+        <!--        WHERE 1=1-->
+        <!--        GROUP BY main_category, sub_category-->
+        SELECT IFNULL(MAX(CODE),0) AS latest_code
+        FROM asset_management
+        WHERE main_category=#{main_category}
+        AND sub_category=#{sub_category}
+    </select>
+
+    <!--등록-->
+    <insert id="createManagement">
+        INSERT INTO asset_management
+        (
+            main_category, sub_category, user_seq, code, purchase_date,
+            manufacturer, serial_num, standard, note, write_id, write_date
+        )
+        VALUES (
+            #{mainCategory}, #{subCategory}, #{userSeq}, #{code}, #{purchaseDate},
+            IFNULL(#{manufacturer},""), IFNULL(#{serialNum},""), IFNULL(#{standard},""), IFNULL(#{note},""), IFNULL(#{writeId},""), now()
+        )
+    </insert>
+
+    <update id="updateManagement">
+        UPDATE asset_management
+        SET main_category = #{mainCategory},
+            sub_category = #{subCategory},
+            user_seq = #{userSeq},
+            code = #{code},
+            purchase_date =#{purchaseDate},
+            manufacturer = IFNULL(#{manufacturer},""),
+            serial_num = IFNULL(#{serialNum},""),
+            standard = IFNULL(#{standard},""),
+            note = IFNULL(#{note},""),
+            write_id = IFNULL(#{writeId},"")
+        WHERE seq=#{seq}
+    </update>
+
+    <!--대여-->
+    <update id="rentalManagement">
+        UPDATE asset_management
+        SET rental = #{rental}
+        WHERE seq= #{seq}
+    </update>
+
+    <!--삭제-->
+    <delete id="deleteManagement" parameterType="list">
+        DELETE FROM asset_management
+        WHERE
+        <foreach collection="deleteManagementSeq" item="info" separator="OR">
+            (SEQ=#{info})
+        </foreach>
+    </delete>
+
+    <!--회원목록-->
+    <select id="searchUserByName" resultType="int">
+        SELECT seq, user_name
+        FROM user
+        WHERE confirm_flag='Y'
+        AND user_name LIKE CONCAT('%',#{userName} ,'%')
+    </select>
+
+    <select id="findUser" resultType="Integer">
+        SELECT seq
+        FROM user
+        WHERE seq=#{seq}
+    </select>
+
+</mapper>
